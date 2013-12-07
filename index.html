@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Basic carousel - jCarousel Examples</title>
+
+        <!-- Shared assets -->
+        <link href='http://fonts.googleapis.com/css?family=Lato:400,400italic|Arvo:700,400,400italic' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" type="text/css" href="style.css">
+
+        <!-- Example assets -->
+        <link rel="stylesheet" type="text/css" href="jcarousel.basic.css">
+
+        <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+
+    </head>
+    <body>
+
+        <script>
+
+        Array.prototype.customFirst = function (delegate) {
+            if (delegate) {
+                for (var i = 0; i < this.length; i++) {
+                    if (delegate(this[i], i)) {
+                        return this[i];
+                    }
+                }
+            }
+
+            return undefined;
+        }
+
+        Array.prototype.customLast = function (delegate)
+        {
+            if (arguments.length == 0)
+            {
+                return this[this.length - 1];
+            }
+
+            for (var i = this.length - 1; i > 0 ; i--)
+            {
+                if (delegate(this[i], i))
+                {
+                    return this[i];
+                }
+            }
+
+            return null;
+        }
+
+        $(function () {
+
+            var $mask = $('.jcarousel');
+            var $wrapper = $('.jcarousel ul');   
+
+            function getSlides()
+            {
+                return $('.jcarousel ul li');
+            }        
+
+            function getSlidesVisibility() {
+                var slidesWidthSum = 0;
+                var slidesVisibility = [];
+                var wrapperLeftOffset = parseInt($wrapper.css('left')) || 0;
+
+                var nextIsFullyVisible = Math.abs(wrapperLeftOffset) == 0;
+                var nextIsFullyInvisible = false;
+                var previousItemVisibility = 'invisible';
+
+                getSlides().each(function () {
+                    var slide = $(this);
+                    slidesWidthSum += slide.outerWidth();
+
+                    var visibility = 'invisible';
+                    var invisiblePartSize = 0;
+
+                    if (Math.abs(wrapperLeftOffset) < slidesWidthSum 
+                        && slidesWidthSum <= Math.abs(wrapperLeftOffset) + $mask.width())
+                    {
+                        if (nextIsFullyVisible || previousItemVisibility != 'invisible')
+                        {
+                            visibility = 'fullyVisible';
+                        }
+                        else
+                        {
+                            // front
+                            visibility = 'partiallyVisible';
+                            invisiblePartSize = slide.outerWidth() - (slidesWidthSum + wrapperLeftOffset);
+                        }
+                    }
+                    else if (slidesWidthSum > Math.abs(wrapperLeftOffset) + $mask.width()
+                        && previousItemVisibility == 'fullyVisible' && !nextIsFullyInvisible)
+                    {
+                        //back
+                        visibility = 'partiallyVisible';
+                        invisiblePartSize = slidesWidthSum - (Math.abs(wrapperLeftOffset) + $mask.width());
+                    }
+                    
+                    slidesVisibility.push({
+                        slide: slide,
+                        visibility: visibility,
+                        invisiblePartSize: invisiblePartSize
+                    });
+
+                    nextIsFullyVisible = Math.abs(wrapperLeftOffset) == slidesWidthSum;
+                    nextIsFullyInvisible = Math.abs(wrapperLeftOffset) + $mask.width() == slidesWidthSum;
+
+                    previousItemVisibility = visibility;
+
+                });
+
+                return slidesVisibility;
+            }
+
+            function moveOnOneSlide(direction) {
+                var slidesVisibilityInfo = getSlidesVisibility();
+
+                var visibleSlideInfo = slidesVisibilityInfo[direction < 0 ? 'customFirst' : 'customLast'](function (s) { 
+                    return s.visibility == 'partiallyVisible' 
+                        || s.visibility == 'fullyVisible';
+                });
+
+                var offset;
+
+                if (visibleSlideInfo.visibility == 'partiallyVisible')
+                {
+                    offset = visibleSlideInfo.invisiblePartSize;
+                }
+                else
+                {
+                    var nextElement = visibleSlideInfo.slide[direction < 0 ? 'prev' : 'next']();
+
+                    if (nextElement.length == 0)
+                    {
+                        nextElement = getSlides()[direction < 0 ? 'last' : 'first']();
+                        nextElement[direction < 0 ? 'insertBefore' : 'insertAfter'](visibleSlideInfo.slide);
+
+                        $wrapper.css('left', (parseInt($wrapper.css('left')) || 0) + (direction < 0 ? -1 : 1) * nextElement.outerWidth() + 'px');
+
+                    }
+
+                    offset = nextElement.outerWidth();
+                }
+
+                moveWrapper((direction < 0 ? 1 : -1) * offset, function () { checkSelectedSlide(direction); });
+            }
+
+            function checkSelectedSlide(direction)
+            {
+                var slidesVisibilityInfo = getSlidesVisibility();
+                var selectedClassName = 'selected';
+
+                var selectedSlideInfo = slidesVisibilityInfo.customFirst(function (slideInfo) { 
+                    return slideInfo.slide.hasClass(selectedClassName); 
+                });
+
+                var paddingSize = 10;
+
+                if ( selectedSlideInfo.visibility == 'fullyVisible' 
+                    || ( selectedSlideInfo.visibility == 'partiallyVisible' && selectedSlideInfo.invisiblePartSize < paddingSize) )
+                {
+                    return;
+                }
+
+                var edgeSlideInfo = slidesVisibilityInfo[direction < 0 ? 'customLast' : 'customFirst'](function (s) { 
+                    return s.visibility == 'partiallyVisible' 
+                        || s.visibility == 'fullyVisible';
+                });
+
+                var slideToSelect = edgeSlideInfo.slide;
+
+                if (edgeSlideInfo.visibility == 'partiallyVisible' && edgeSlideInfo.invisiblePartSize >= paddingSize)
+                {
+                    slideToSelect = edgeSlideInfo.slide[direction < 0 ? 'prev' : 'next']();
+                }
+
+                slideToSelect.addClass(selectedClassName);
+                selectedSlideInfo.slide.removeClass(selectedClassName);
+            }
+
+            function moveWrapper(offset, callback)
+            {
+                $wrapper.animate({
+                    'left': (parseInt($wrapper.css('left')) || 0) + offset + 'px'
+                }, 200, callback);
+
+                // $wrapper.css('left', (parseInt($wrapper.css('left')) || 0) + offset + 'px');
+            }
+
+            $('.jcarousel-control-prev').click(function () { moveOnOneSlide(-1); });
+            $('.jcarousel-control-next').click(function () { moveOnOneSlide(1); });
+
+        });
+
+        </script>
+
+        <div class="wrapper">
+            <h1>Basic carousel</h1>
+
+            <p>This example shows how to setup a basic carousel with prev/next controls and pagination.</p>
+
+            <div class="jcarousel-wrapper">
+                <div class="jcarousel">
+                    <ul>
+                        <li class="selected"><div class="city">Москва</div></li>
+                        <li><div class="city">Санкт-Петербург</div></li>
+                        <li><div class="city">Нижний Новгород</div></li>
+                        <li><div class="city">Кубань</div></li>
+                        <li><div class="city">Нефтеюганск</div></li>
+                        <li><div class="city">Рим</div></li>
+                        <li><div class="city">Майами</div></li>
+                        <li><div class="city">Москва</div></li>
+                        <li><div class="city">Санкт-Петербург</div></li>
+                        <li><div class="city">Нижний Новгород</div></li>
+                        <li><div class="city">Кубань</div></li>
+                        <li><div class="city">Нефтеюганск</div></li>
+                        <li><div class="city">Рим</div></li>
+                        <li><div class="city">Майами</div></li>
+                    </ul>
+                </div>
+
+                <p class="photo-credits">
+                    Photos by <a href="http://www.mw-fotografie.de">Marc Wiegelmann</a>
+                </p>
+
+                <a href="#" class="jcarousel-control-prev">&lsaquo;</a>
+                <a href="#" class="jcarousel-control-next">&rsaquo;</a>
+                
+            </div>
+        </div>
+
+    </body>
+</html>
