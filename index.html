@@ -120,29 +120,40 @@
                         || s.visibility == 'fullyVisible';
                 });
 
-                var offset;
+                var offset = getOffsetToMove(visibleSlideInfo, direction);
+
+                moveWrapper((direction < 0 ? 1 : -1) * offset, function () { checkSelectedSlide(direction); });
+            }
+
+            function getOffsetToMove(visibleSlideInfo, direction)
+            {
+                var offset = 0;
 
                 if (visibleSlideInfo.visibility == 'partiallyVisible')
                 {
-                    offset = visibleSlideInfo.invisiblePartSize;
-                }
-                else
-                {
-                    var nextElement = visibleSlideInfo.slide[direction < 0 ? 'prev' : 'next']();
-
-                    if (nextElement.length == 0)
+                    if (visibleSlideInfo.invisiblePartSize >= 10)
                     {
-                        nextElement = getSlides()[direction < 0 ? 'last' : 'first']();
-                        nextElement[direction < 0 ? 'insertBefore' : 'insertAfter'](visibleSlideInfo.slide);
-
-                        $wrapper.css('left', (parseInt($wrapper.css('left')) || 0) + (direction < 0 ? -1 : 1) * nextElement.outerWidth() + 'px');
-
+                        return visibleSlideInfo.invisiblePartSize;
                     }
-
-                    offset = nextElement.outerWidth();
+                    else
+                    {
+                        offset += visibleSlideInfo.invisiblePartSize;
+                    }
                 }
 
-                moveWrapper((direction < 0 ? 1 : -1) * offset, function () { checkSelectedSlide(direction); });
+                var nextElement = visibleSlideInfo.slide[direction < 0 ? 'prev' : 'next']();
+
+                if (nextElement.length == 0)
+                {
+                    nextElement = getSlides()[direction < 0 ? 'last' : 'first']();
+                    nextElement[direction < 0 ? 'insertBefore' : 'insertAfter'](visibleSlideInfo.slide);
+
+                    $wrapper.css('left', (parseInt($wrapper.css('left')) || 0) + (direction < 0 ? -1 : 1) * nextElement.outerWidth() + 'px');
+
+                }
+
+                offset += nextElement.outerWidth();
+                return offset;
             }
 
             function checkSelectedSlide(direction)
@@ -187,8 +198,8 @@
                 // $wrapper.css('left', (parseInt($wrapper.css('left')) || 0) + offset + 'px');
             }
 
-            $('.jcarousel-control-prev').click(function () { moveOnOneSlide(-1); });
-            $('.jcarousel-control-next').click(function () { moveOnOneSlide(1); });
+            $('.jcarousel-control-prev').click(function () { moveOnOneSlide(-1); return false; });
+            $('.jcarousel-control-next').click(function () { moveOnOneSlide(1); return false; });
 
         });
 
