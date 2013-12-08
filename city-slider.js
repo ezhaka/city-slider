@@ -32,13 +32,16 @@ Array.prototype.customLast = function (delegate)
 
 // city slider
 
-function CitySlider ($element) {
+function CitySlider ($element, onSlideSelected) {
 
 	this.moveOnOneSlide = moveOnOneSlide;
 	this.selectSlide = selectSlide;
 
+	onSlideSelected = onSlideSelected || function () {};
+
     var $mask = $element;
-    var $wrapper = $element.find('ul');   
+    var $wrapper = $element.find('ul');  
+    var selectedClassName = "active"; 
 
     function getSlides()
     {
@@ -154,7 +157,6 @@ function CitySlider ($element) {
     function checkSelectedSlide(direction)
     {
         var slidesVisibilityInfo = getSlidesVisibility();
-        var selectedClassName = 'selected';
 
         var selectedSlideInfo = slidesVisibilityInfo.customFirst(function (slideInfo) { 
             return slideInfo.slide.hasClass(selectedClassName); 
@@ -182,6 +184,18 @@ function CitySlider ($element) {
 
         slideToSelect.addClass(selectedClassName);
         selectedSlideInfo.slide.removeClass(selectedClassName);
+        raiseSlideSelectedEvent(slideToSelect)
+    }
+
+    var slideSelectRaiseTimeout;
+
+    function raiseSlideSelectedEvent(selectedSlide)
+    {
+    	clearTimeout(slideSelectRaiseTimeout);
+
+    	setTimeout(function () {
+    		onSlideSelected(selectedSlide);
+    	}, 50);
     }
 
     function moveWrapper(offset, callback, duration)
@@ -198,8 +212,9 @@ function CitySlider ($element) {
 
     function selectSlide(target)
     {
-        getSlides().removeClass('selected');
-        target.addClass('selected');
+        getSlides().removeClass(selectedClassName);
+        target.addClass(selectedClassName);
+        raiseSlideSelectedEvent(target);
 
         var slidesInfo = getSlidesVisibility();
 
@@ -250,8 +265,9 @@ function CitySlider ($element) {
 
         if (targetInfo.visibility == 'fullyVisible')
         {
-            getSlides().removeClass('selected');
-            $slide.addClass('selected');
+            getSlides().removeClass(selectedClassName);
+            $slide.addClass(selectedClassName);
+            raiseSlideSelectedEvent($slide);
 
             return;
         }

@@ -22,7 +22,9 @@
         
         $(function () {
 
-            var citySlider = new CitySlider($('.jcarousel'));
+            var citySlider = new CitySlider($('.jcarousel'), function (slide) { 
+                console.log(slide.children().html()); 
+            });
 
             $('.jcarousel').delegate('li', 'click', function () { citySlider.selectSlide($(this)); });
 
@@ -41,7 +43,7 @@
             <div class="jcarousel-wrapper">
                 <div class="jcarousel">
                     <ul>
-                        <li class="selected"><div class="city">Москва</div></li>
+                        <li class="active"><div class="city">Москва</div></li>
                         <li><div class="city">Санкт-Петербург</div></li>
                         <li><div class="city">Нижний Новгород</div></li>
                         <li><div class="city">Кубань</div></li>

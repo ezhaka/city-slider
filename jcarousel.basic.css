@@ -52,7 +52,7 @@
     cursor: pointer;
 }
 
-.jcarousel ul li.selected {
+.jcarousel ul li.active {
     color: #3C92FF;
 }
 
